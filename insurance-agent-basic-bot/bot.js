@@ -1,21 +1,21 @@
 // Load the environment variables from the .env file
 require('dotenv-extended').load();
 
-var builder = require('botbuilder');
+const builder = require('botbuilder');
 
 const connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 
-var InsuranceType = {
+const InsuranceType = {
     Driver: 'Driver',
     Home: 'Home',
     Farm: 'Farm',
     Travel: 'Travel'
 };
 
-var inMemoryStorage = new builder.MemoryBotStorage();
+const inMemoryStorage = new builder.MemoryBotStorage();
 
 const bot = module.exports = new builder.UniversalBot(connector, [
     function (session) {
@@ -56,7 +56,7 @@ const bot = module.exports = new builder.UniversalBot(connector, [
     }
 ]).set('storage', inMemoryStorage); // Register in memory storage
 
-bot.dialog('insurance-driver',[
+bot.dialog('insurance-driver', [
     function (session) {
         session.send("OK, lets talk about driver insurance.");
         builder.Prompts.time(session, 'When do you want the insurance coverage to start?');
@@ -89,21 +89,21 @@ bot.dialog('insurance-driver',[
     }
 ]);
 
-bot.dialog('insurance-home',[
+bot.dialog('insurance-home', [
     function (session) {
         session.send("I'm sorry, home insurance is not supported yet.");
         session.endDialog();
     }
 ]);
 
-bot.dialog('insurance-farm',[
+bot.dialog('insurance-farm', [
     function (session) {
         session.send("I'm sorry, farm insurance is not supported yet.");
         session.endDialog();
     }
 ]);
 
-bot.dialog('insurance-travel',[
+bot.dialog('insurance-travel', [
     function (session) {
         session.send("I'm sorry, travel insurance is not supported yet.");
         session.endDialog();
@@ -112,5 +112,5 @@ bot.dialog('insurance-travel',[
 
 // log any bot errors into the console
 bot.on('error', function (e) {
-    console.log('And error ocurred', e);
+    console.log('And error occurred', e);
 });
