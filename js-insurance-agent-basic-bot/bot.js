@@ -15,6 +15,8 @@ const InsuranceType = {
     Travel: 'Travel'
 };
 
+const backend = require('./backend');
+
 const inMemoryStorage = new builder.MemoryBotStorage();
 
 const bot = module.exports = new builder.UniversalBot(connector, [
@@ -85,7 +87,22 @@ bot.dialog('insurance-driver', [
             session.dialogData.policyStart,
             session.dialogData.policyEnd,
             session.dialogData.claimsNo);
-        session.endDialog()
+
+        session.send("Calculating price. Please wait...");
+
+        var params = {
+            "productCode": "CAR",
+            "policyFrom": session.dialogData.policyStart,
+            "policyTo": session.dialogData.policyEnd,
+            "selectedCovers": ["C1"],
+            "answers": [{"questionCode": "NUM_OF_CLAIM", "type": "numeric", "answer": session.dialogData.claimsNo}]
+        };
+
+        backend.calculatePrice(params).then(function(offer){
+            session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
+            session.endDialog();
+        });
+
     }
 ]);
 
