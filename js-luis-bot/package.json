@@ -1,0 +1,20 @@
+{
+  "name": "js-luis-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "botbuilder": "^4.0.0-preview1.2",
+    "botbuilder-ai": "^4.0.0-preview1.2",
+    "botbuilder-dialogs": "^4.0.0-preview1.2",
+    "dotenv": "^2.0.0",
+    "restify": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^6.0.52",
+    "@types/restify": "^2.0.35"
+  }
+}
