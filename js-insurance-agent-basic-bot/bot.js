@@ -100,6 +100,7 @@ bot.dialog('create-policy', [
         backend.createPolicy(params).then(function (policy) {
             console.log(policy);
             session.send('Your policy has been created: %s', policy.policyNumber);
+            session.send('This is link for your policy in our system: %s', process.env.SALES_SYSTEM_URL + "#/policies/" + policy.policyNumber);
             session.endDialog();
         });
     }
