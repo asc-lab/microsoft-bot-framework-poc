@@ -9,10 +9,22 @@ const connector = new builder.ChatConnector({
 });
 
 const InsuranceType = {
-    Driver: 'Driver',
-    Home: 'Home',
-    Farm: 'Farm',
-    Travel: 'Travel'
+    Driver: {
+        code: 'CAR',
+        name: 'Driver'
+    },
+    Home: {
+        code: 'HSI',
+        name: 'Home'
+    },
+    Farm: {
+        code: 'FAI',
+        name: 'Farm'
+    },
+    Travel: {
+        code: 'TRI',
+        name: 'Travel'
+    }
 };
 
 const backend = require('./backend');
@@ -24,7 +36,7 @@ const bot = module.exports = new builder.UniversalBot(connector, [
         builder.Prompts.choice(
             session,
             'What kind of insurance do you need?',
-            [InsuranceType.Driver, InsuranceType.Home, InsuranceType.Farm, InsuranceType.Travel],
+            [InsuranceType.Driver.name, InsuranceType.Home.name, InsuranceType.Farm.name, InsuranceType.Travel.name],
             {
                 maxRetries: 3,
                 retryPrompt: 'Not a valid option'
@@ -44,15 +56,16 @@ const bot = module.exports = new builder.UniversalBot(connector, [
         });
 
         // continue on proper dialog
+        console.log(result.response.entity);
         const selection = result.response.entity;
         switch (selection) {
-            case InsuranceType.Driver:
+            case InsuranceType.Driver.name:
                 return session.beginDialog('insurance-driver');
-            case InsuranceType.Home:
+            case InsuranceType.Home.name:
                 return session.beginDialog('insurance-home');
-            case InsuranceType.Farm:
+            case InsuranceType.Farm.name:
                 return session.beginDialog('insurance-farm');
-            case InsuranceType.Travel:
+            case InsuranceType.Travel.name:
                 return session.beginDialog('insurance-travel');
         }
     }
@@ -127,7 +140,6 @@ function getDriverDialogSteps() {
 
 bot.dialog('insurance-driver', getDriverDialogSteps());
 
-
 bot.dialog('create-policy', [
     function (session) {
         session.send('OK, lets sign papers!');
@@ -172,6 +184,11 @@ bot.dialog('create-policy', [
 ]);
 
 function getHomeDialogSteps() {
+    backend.getProductDefinition({
+        code: InsuranceType.Home.code
+    }).then(function (product) {
+        console.log(product);
+    });
     return [
         function (session) {
             session.send("I'm sorry, home insurance is not supported yet.");
