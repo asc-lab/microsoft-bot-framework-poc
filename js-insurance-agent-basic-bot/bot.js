@@ -1,7 +1,7 @@
-// Load the environment variables from the .env file
 require('dotenv-extended').load();
 
 const builder = require('botbuilder');
+const backend = require('./backend');
 
 const connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
@@ -9,25 +9,11 @@ const connector = new builder.ChatConnector({
 });
 
 const InsuranceType = {
-    Driver: {
-        code: 'CAR',
-        name: 'Driver'
-    },
-    Home: {
-        code: 'HSI',
-        name: 'Home'
-    },
-    Farm: {
-        code: 'FAI',
-        name: 'Farm'
-    },
-    Travel: {
-        code: 'TRI',
-        name: 'Travel'
-    }
+    Driver: {code: 'CAR', name: 'Driver'},
+    Home: {code: 'HSI', name: 'Home'},
+    Farm: {code: 'FAI', name: 'Farm'},
+    Travel: {code: 'TRI', name: 'Travel'}
 };
-
-const backend = require('./backend');
 
 const inMemoryStorage = new builder.MemoryBotStorage();
 
@@ -69,76 +55,68 @@ const bot = module.exports = new builder.UniversalBot(connector, [
                 return session.beginDialog('insurance-travel');
         }
     }
-]).set('storage', inMemoryStorage); // Register in memory storage
-
-function getDriverDialogSteps() {
-    return [
-        function (session) {
-            session.send("OK, lets talk about driver insurance.");
-            builder.Prompts.time(session, 'When do you want the insurance coverage to start?');
-        },
-        function (session, results, next) {
-            session.dialogData.policyStart = results.response.resolution.start;
-            next();
-        },
-        function (session) {
-            builder.Prompts.time(session, 'When do you want the insurance coverage to end?');
-        },
-        function (session, results, next) {
-            session.dialogData.policyEnd = results.response.resolution.start;
-            next();
-        },
-        function (session) {
-            session.send("One more question:");
-            builder.Prompts.number(session, 'How many claims did you have in last 5 years?');
-        },
-        function (session, results, next) {
-            session.dialogData.claimsNo = results.response;
-            next();
-        },
-        function (session) {
-            session.send("Let wrap up: you need driver insurance from %s to %s and you declared %s claim(s) during last 5 years",
-                session.dialogData.policyStart,
-                session.dialogData.policyEnd,
-                session.dialogData.claimsNo);
-
-            session.send("Calculating price. Please wait...");
-
-            var params = {
-                "productCode": "CAR",
-                "policyFrom": session.dialogData.policyStart,
-                "policyTo": session.dialogData.policyEnd,
-                "selectedCovers": ["C1"],
-                "answers": [{"questionCode": "NUM_OF_CLAIM", "type": "numeric", "answer": session.dialogData.claimsNo}]
-            };
-
-            backend.calculatePrice(params).then(function (offer) {
-                session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
-                session.conversationData.offer = offer;
-                builder.Prompts.choice(
-                    session,
-                    'Are you interested?',
-                    ['Yes', 'No']
-                );
-            });
-
-        },
-        function (session, result, next) {
-            var selection = result.response.entity;
-            switch (selection) {
-                case 'Yes':
-                    session.beginDialog('create-policy');
-                    break;
-                case 'No':
-                    session.send('Bye, then!');
-                    session.endDialog();
-                    break;
-            }
-        }
-    ];
-}
+]).set('storage', inMemoryStorage);
 
 bot.dialog('insurance-driver', getDriverDialogSteps());
+bot.dialog('insurance-home', getDialogSteps(InsuranceType.Home.code));
+bot.dialog('insurance-farm', getDialogSteps(InsuranceType.Farm.code));
+bot.dialog('insurance-travel', getDialogSteps(InsuranceType.Travel.code));
+
+function getDriverDialogSteps() {
+    let steps = [];
+
+    steps = _addStepsAboutCoverageDates(steps);
+
+    steps.push(function (session) {
+        session.send("One more question:");
+        builder.Prompts.number(session, 'How many claims did you have in last 5 years?');
+    });
+    steps.push(function (session, results, next) {
+        session.dialogData.claimsNo = results.response;
+        next();
+    });
+    steps.push(function (session) {
+        session.send("Let wrap up: you need driver insurance from %s to %s and you declared %s claim(s) during last 5 years",
+            session.dialogData.policyStart,
+            session.dialogData.policyEnd,
+            session.dialogData.claimsNo);
+
+        session.send("Calculating price. Please wait...");
+
+        const params = {
+            "productCode": "CAR",
+            "policyFrom": session.dialogData.policyStart,
+            "policyTo": session.dialogData.policyEnd,
+            "selectedCovers": ["C1"],
+            "answers": [{"questionCode": "NUM_OF_CLAIM", "type": "numeric", "answer": session.dialogData.claimsNo}]
+        };
+
+        backend.calculatePrice(params).then(function (offer) {
+            session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
+            session.conversationData.offer = offer;
+            builder.Prompts.choice(
+                session,
+                'Are you interested?',
+                ['Yes', 'No']
+            );
+        });
+
+    });
+    steps.push(function (session, result) {
+        const selection = result.response.entity;
+        switch (selection) {
+            case 'Yes':
+                session.beginDialog('create-policy');
+                break;
+            case 'No':
+                session.send('Bye, then!');
+                session.endDialog();
+                break;
+        }
+    });
+
+    return steps;
+}
 
 bot.dialog('create-policy', [
     function (session) {
@@ -160,14 +138,14 @@ bot.dialog('create-policy', [
         session.send('One more question:');
         builder.Prompts.text(session, 'What is your tax id?');
     },
-    function (session, results, next) {
+    function (session, results) {
         session.userData.taxId = results.response;
         session.send('OK, I am creating policy for %s %s (tax id: %s), please wait...',
             session.userData.firstName,
             session.userData.lastName,
             session.userData.taxId
         );
-        var params = {
+        const params = {
             "offerNumber": session.conversationData.offer.offerNumber,
             "policyHolder": {
                 "firstName": session.userData.firstName,
@@ -183,43 +161,97 @@ bot.dialog('create-policy', [
     }
 ]);
 
-function getHomeDialogSteps() {
+function getDialogSteps(productCode) {
+    let steps = [];
     backend.getProductDefinition({
-        code: InsuranceType.Home.code
+        code: productCode
     }).then(function (product) {
         console.log(product);
+        steps = _addStepsAboutCoverageDates(steps);
+        steps = _addStepsBasedOnTariff(product, steps);
     });
-    return [
-        function (session) {
-            session.send("I'm sorry, home insurance is not supported yet.");
-            session.endDialog();
-        }
-    ];
+    return steps;
 }
 
-bot.dialog('insurance-home', getHomeDialogSteps());
+function _addStepsAboutCoverageDates(steps) {
+    steps.push(function (session) {
+        session.send("OK, lets talk about insurance.");
+        builder.Prompts.time(session, 'When do you want the insurance coverage to start?');
+    });
 
-function getFarmDialogSteps() {
-    return [
-        function (session) {
-            session.send("I'm sorry, farm insurance is not supported yet.");
-            session.endDialog();
-        }
-    ];
+    steps.push(function (session, results, next) {
+        session.dialogData.policyStart = results.response.resolution.start;
+        next();
+    });
+    steps.push(function (session) {
+        builder.Prompts.time(session, 'When do you want the insurance coverage to end?');
+    });
+    steps.push(function (session, results, next) {
+        session.dialogData.policyEnd = results.response.resolution.start;
+        next();
+    });
+    return steps;
 }
 
-bot.dialog('insurance-farm', getFarmDialogSteps());
+function _addStepsBasedOnTariff(product, steps) {
+    product.questions.forEach(function (question) {
+        if (question.type === 'numeric') {
+            steps.push(function (session) {
+                builder.Prompts.number(session, question.text);
+            });
 
-function getTravelDialogSteps() {
-    return [
-        function (session) {
-            session.send("I'm sorry, travel insurance is not supported yet.");
-            session.endDialog();
+            steps.push(function (session, results, next) {
+                if (!session.dialogData.answers) session.dialogData.answers = [];
+
+                session.dialogData.answers.push({
+                    "text": question.text,
+                    "questionCode": question.code,
+                    "type": question.type,
+                    "answer": results.response
+                });
+
+                next();
+            });
         }
-    ];
-}
 
-bot.dialog('insurance-travel', getTravelDialogSteps());
+        if (question.type === 'choice') {
+            steps.push(function (session) {
+                builder.Prompts.choice(session,
+                    question.text,
+                    question.choices.map(c => c.label),
+                    {
+                        maxRetries: 3,
+                        retryPrompt: 'Not a valid option'
+                    });
+            });
+
+            steps.push(function (session, results, next) {
+                if (!session.dialogData.answers) session.dialogData.answers = [];
+
+                console.log(results.response);
+                session.dialogData.answers.push({
+                    "text": question.text,
+                    "questionCode": question.code,
+                    "type": question.type,
+                    "answer": results.response.entity
+                });
+                next();
+            });
+        }
+    });
+
+    steps.push(function (session) {
+        session.send("Let wrap up: you need insurance from %s to %s.", session.dialogData.policyStart, session.dialogData.policyEnd);
+        session.send("Your answers:");
+        session.dialogData.answers.forEach(a => {
+            session.send("Question: %s. Answer: %s.", a.text, a.answer);
+        });
+
+        session.send("Calculating price. Please wait...");
+    });
+
+    return steps;
+}
 
 // log any bot errors into the console
 bot.on('error', function (e) {
