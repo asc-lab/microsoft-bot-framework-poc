@@ -44,88 +44,104 @@ const bot = module.exports = new builder.UniversalBot(connector, [
         });
 
         // continue on proper dialog
-        var selection = result.response.entity;
+        const selection = result.response.entity;
         switch (selection) {
             case InsuranceType.Driver:
                 return session.beginDialog('insurance-driver');
             case InsuranceType.Home:
                 return session.beginDialog('insurance-home');
-            case DialogLabels.Farm:
+            case InsuranceType.Farm:
                 return session.beginDialog('insurance-farm');
-            case DialogLabels.Travel:
+            case InsuranceType.Travel:
                 return session.beginDialog('insurance-travel');
         }
     }
 ]).set('storage', inMemoryStorage); // Register in memory storage
 
-bot.dialog('insurance-driver', [
-    function (session) {
-        session.send("OK, lets talk about driver insurance.");
-        builder.Prompts.time(session, 'When do you want the insurance coverage to start?');
-    },
-    function (session, results, next) {
-        session.dialogData.policyStart = results.response.resolution.start;
-        next();
-    },
-    function (session) {
-        builder.Prompts.time(session, 'When do you want the insurance coverage to end?');
-    },
-    function (session, results, next) {
-        session.dialogData.policyEnd = results.response.resolution.start;
-        next();
-    },
-    function (session) {
-        session.send("One more question:");
-        builder.Prompts.number(session, 'How many claims did you have in last 5 years?');
-    },
-    function (session, results, next) {
-        session.dialogData.claimsNo = results.response;
-        next();
-    },
-    function (session) {
-        session.send("Let wrap up: you need driver insurance from %s to %s and you declared %s claim(s) during last 5 years",
-            session.dialogData.policyStart,
-            session.dialogData.policyEnd,
-            session.dialogData.claimsNo);
+function getDriverDialogSteps() {
+    return [
+        function (session) {
+            session.send("OK, lets talk about driver insurance.");
+            builder.Prompts.time(session, 'When do you want the insurance coverage to start?');
+        },
+        function (session, results, next) {
+            session.dialogData.policyStart = results.response.resolution.start;
+            next();
+        },
+        function (session) {
+            builder.Prompts.time(session, 'When do you want the insurance coverage to end?');
+        },
+        function (session, results, next) {
+            session.dialogData.policyEnd = results.response.resolution.start;
+            next();
+        },
+        function (session) {
+            session.send("One more question:");
+            builder.Prompts.number(session, 'How many claims did you have in last 5 years?');
+        },
+        function (session, results, next) {
+            session.dialogData.claimsNo = results.response;
+            next();
+        },
+        function (session) {
+            session.send("Let wrap up: you need driver insurance from %s to %s and you declared %s claim(s) during last 5 years",
+                session.dialogData.policyStart,
+                session.dialogData.policyEnd,
+                session.dialogData.claimsNo);
 
-        session.send("Calculating price. Please wait...");
+            session.send("Calculating price. Please wait...");
 
-        var params = {
-            "productCode": "CAR",
-            "policyFrom": session.dialogData.policyStart,
-            "policyTo": session.dialogData.policyEnd,
-            "selectedCovers": ["C1"],
-            "answers": [{"questionCode": "NUM_OF_CLAIM", "type": "numeric", "answer": session.dialogData.claimsNo}]
-        };
+            var params = {
+                "productCode": "CAR",
+                "policyFrom": session.dialogData.policyStart,
+                "policyTo": session.dialogData.policyEnd,
+                "selectedCovers": ["C1"],
+                "answers": [{"questionCode": "NUM_OF_CLAIM", "type": "numeric", "answer": session.dialogData.claimsNo}]
+            };
 
-        backend.calculatePrice(params).then(function(offer){
-            session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
+            backend.calculatePrice(params).then(function (offer) {
+                session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
+                session.endDialog();
+            });
+
+        }
+    ];
+}
+
+bot.dialog('insurance-driver', getDriverDialogSteps());
+
+function getHomeDialogSteps() {
+    return [
+        function (session) {
+            session.send("I'm sorry, home insurance is not supported yet.");
             session.endDialog();
-        });
+        }
+    ];
+}
 
-    }
-]);
+bot.dialog('insurance-home', getHomeDialogSteps());
 
-bot.dialog('insurance-home', [
-    function (session) {
-        session.send("I'm sorry, home insurance is not supported yet.");
-        session.endDialog();
-    }
-]);
+function getFarmDialogSteps() {
+    return [
+        function (session) {
+            session.send("I'm sorry, farm insurance is not supported yet.");
+            session.endDialog();
+        }
+    ];
+}
 
-bot.dialog('insurance-farm', [
-    function (session) {
-        session.send("I'm sorry, farm insurance is not supported yet.");
-        session.endDialog();
-    }
-]);
+bot.dialog('insurance-farm', getFarmDialogSteps());
 
-bot.dialog('insurance-travel', [
-    function (session) {
-        session.send("I'm sorry, travel insurance is not supported yet.");
-        session.endDialog();
-    }
-]);
+function getTravelDialogSteps() {
+    return [
+        function (session) {
+            session.send("I'm sorry, travel insurance is not supported yet.");
+            session.endDialog();
+        }
+    ];
+}
+
+bot.dialog('insurance-travel', getTravelDialogSteps());
 
 // log any bot errors into the console
 bot.on('error', function (e) {
