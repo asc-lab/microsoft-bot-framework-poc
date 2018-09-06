@@ -101,14 +101,75 @@ function getDriverDialogSteps() {
 
             backend.calculatePrice(params).then(function (offer) {
                 session.send("Your insurance will cost %s EUR. Offer ID: %s", offer.totalPrice, offer.offerNumber);
-                session.endDialog();
+                session.conversationData.offer = offer;
+                builder.Prompts.choice(
+                    session,
+                    'Are you interested?',
+                    ['Yes', 'No']
+                );
             });
 
+        },
+        function (session, result, next) {
+            var selection = result.response.entity;
+            switch (selection) {
+                case 'Yes':
+                    session.beginDialog('create-policy');
+                    break;
+                case 'No':
+                    session.send('Bye, then!');
+                    session.endDialog();
+                    break;
+            }
         }
     ];
 }
 
 bot.dialog('insurance-driver', getDriverDialogSteps());
+
+
+bot.dialog('create-policy', [
+    function (session) {
+        session.send('OK, lets sign papers!');
+        builder.Prompts.text(session, 'What is your first name?');
+    },
+    function (session, results, next) {
+        session.userData.firstName = results.response;
+        next();
+    },
+    function (session) {
+        builder.Prompts.text(session, 'What is your last name?');
+    },
+    function (session, results, next) {
+        session.userData.lastName = results.response;
+        next();
+    },
+    function (session) {
+        session.send('One more question:');
+        builder.Prompts.text(session, 'What is your tax id?');
+    },
+    function (session, results, next) {
+        session.userData.taxId = results.response;
+        session.send('OK, I am creating policy for %s %s (tax id: %s), please wait...',
+            session.userData.firstName,
+            session.userData.lastName,
+            session.userData.taxId
+        );
+        var params = {
+            "offerNumber": session.conversationData.offer.offerNumber,
+            "policyHolder": {
+                "firstName": session.userData.firstName,
+                "lastName": session.userData.lastName,
+                "taxId": session.userData.taxId
+            }
+        };
+        backend.createPolicy(params).then(function (policy) {
+            console.log(policy);
+            session.send('Your policy has been created: %s', policy.policyNumber);
+            session.endDialog();
+        });
+    }
+]);
 
 function getHomeDialogSteps() {
     return [

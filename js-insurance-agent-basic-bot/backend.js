@@ -1,7 +1,7 @@
 const request = require('request');
 
 function login() {
-    const credentials = {"username": "", "password": ""};
+    const credentials = {"username": "jimmy.solid", "password": "secret"};
 
     return new Promise(function (resolve, reject) {
         request({
@@ -58,6 +58,39 @@ function calculatePrice(params) {
         });
 }
 
+function _createPolicy(params, auth) {
+    return new Promise(function (resolve, reject) {
+        request({
+                method: 'POST',
+                uri: 'http://localhost:8081/api/policies/create',
+                headers: {
+                    'content-type':
+                        'application/json',
+                    'Authorization': 'Bearer ' + auth.accessToken
+                },
+                body:
+                    JSON.stringify(params)
+
+            },
+            function (error, response, body) {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(JSON.parse(body));
+                }
+            }
+        );
+    });
+}
+
+function createPolicy(params) {
+    return login()
+        .then(function (auth) {
+            return _createPolicy(params, auth);
+        });
+}
+
 module.exports = {
-    calculatePrice: calculatePrice
+    calculatePrice: calculatePrice,
+    createPolicy: createPolicy
 };
