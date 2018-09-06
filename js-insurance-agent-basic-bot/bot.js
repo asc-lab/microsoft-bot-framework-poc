@@ -2,6 +2,7 @@ require('dotenv-extended').load();
 
 const builder = require('botbuilder');
 const backend = require('./backend');
+const util = require('util');
 
 const connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
@@ -100,11 +101,32 @@ bot.dialog('create-policy', [
         backend.createPolicy(params).then(function (policy) {
             console.log(policy);
             session.send('Your policy has been created: %s', policy.policyNumber);
-            session.send('This is link for your policy in our system: %s', process.env.SALES_SYSTEM_URL + "#/policies/" + policy.policyNumber);
-            session.endDialog();
+            waitForDocumentCreation()
+                .then(function () {
+                    return backend.getPolicyAttachments(policy.policyNumber)
+                })
+                .then(function (response) {
+                    console.log("processing attachments ");
+                    if (response != null && response.documents != null) {
+                        console.log(response.documents);
+                        response.documents.forEach(function (doc) {
+                            sendInline(session, {
+                                    content: doc.content,
+                                    contentType: 'application/pdf',
+                                    name: 'policy.pdf'
+                                }
+                            );
+                        });
+                    }
+                    session.endDialog();
+                });
         });
     }
 ]);
+
+function waitForDocumentCreation(ms) {
+    return new Promise(resolve => setTimeout(resolve, 1000));
+}
 
 function getDialogSteps(productCode) {
     let steps = [];
@@ -246,3 +268,14 @@ function _addCalculatePriceSteps(product, steps) {
 bot.on('error', function (e) {
     console.log('And error occurred', e);
 });
+
+function sendInline(session, document) {
+    var msg = new builder.Message(session)
+        .addAttachment({
+            contentUrl: util.format('data:%s;base64,%s', document.contentType, document.content),
+            contentType: document.contentType,
+            name: document.name
+        });
+
+    session.send(msg);
+}

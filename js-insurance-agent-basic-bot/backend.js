@@ -116,8 +116,37 @@ function getProductDefinition(params) {
         });
 }
 
+function _getPolicyAttachments(code, auth) {
+    return new Promise(function (resolve, reject) {
+        request({
+                method: 'GET',
+                uri: 'http://localhost:8081/api/documents/' + code,
+                headers: {
+                    'content-type': 'application/json',
+                    'Authorization': 'Bearer ' + auth.accessToken
+                }
+            },
+            function (error, response, body) {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(JSON.parse(body));
+                }
+            }
+        );
+    });
+}
+
+function getPolicyAttachments(code) {
+    return login()
+        .then(function (auth) {
+            return _getPolicyAttachments(code, auth);
+        });
+}
+
 module.exports = {
     calculatePrice: calculatePrice,
     createPolicy: createPolicy,
-    getProductDefinition: getProductDefinition
+    getProductDefinition: getProductDefinition,
+    getPolicyAttachments: getPolicyAttachments
 };
