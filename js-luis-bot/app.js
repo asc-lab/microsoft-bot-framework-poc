@@ -5,7 +5,7 @@ require('dotenv').config();
 
 // Create server
 let server = restify.createServer();
-server.listen(process.env.port || process.env.PORT || 3978, function () {
+server.listen(process.env.port || process.env.PORT || 3979, function () {
     console.log(`${server.name} listening to ${server.url}`);
 });
 
@@ -27,8 +27,6 @@ adapter.use(luisRecognizer);
 // Add conversation state middleware
 const conversationState = new ConversationState(new MemoryStorage());
 adapter.use(conversationState);
-
-const dialogs = new DialogSet();
 
 // Listen for incoming activity
 server.post('/api/messages', (req, res) => {
@@ -83,36 +81,3 @@ server.post('/api/messages', (req, res) => {
         }
     );
 });
-
-dialogs.add('HomeAutomation_TurnOn', [
-    async (dialogContext) => {
-        const state = conversationState.get(dialogContext.context);
-        // state.homeAutomationTurnOn counts how many times this dialog was called
-        state.homeAutomationTurnOn = state.homeAutomationTurnOn ? state.homeAutomationTurnOn + 1 : 1;
-        await dialogContext.context.sendActivity(`${state.homeAutomationTurnOn}: You reached the "HomeAutomation_TurnOn" dialog.`);
-
-        await dialogContext.end();
-    }
-]);
-
-dialogs.add('Weather_GetForecast', [
-    async (dialogContext) => {
-        const state = conversationState.get(dialogContext.context);
-        // state.weatherGetForecast counts how many times this dialog was called
-        state.weatherGetForecast = state.weatherGetForecast ? state.weatherGetForecast + 1 : 1;
-        await dialogContext.context.sendActivity(`${state.weatherGetForecast}: You reached the "Weather_GetForecast" dialog.`);
-
-        await dialogContext.end();
-    }
-]);
-
-dialogs.add('None', [
-    async (dialogContext) => {
-        const state = conversationState.get(dialogContext.context);
-        // state.None counts how many times this dialog was called
-        state.None = state.None ? state.None + 1 : 1;
-        await dialogContext.context.sendActivity(`${state.None}: You reached the "None" dialog.`);
-
-        await dialogContext.end();
-    }
-]);
