@@ -124,7 +124,7 @@ bot.dialog('create-policy', [
     }
 ]);
 
-function waitForDocumentCreation(ms) {
+function waitForDocumentCreation() {
     return new Promise(resolve => setTimeout(resolve, 1000));
 }
 
