@@ -1,5 +1,6 @@
+require('dotenv-extended').load();
 const request = require('request');
-const backendHost = 'localhost';
+const backendHost = process.env.BACKEND_HOST;
 
 function login() {
     const credentials = {"username": "jimmy.solid", "password": "secret"};
