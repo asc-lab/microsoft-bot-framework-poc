@@ -24,6 +24,22 @@ const inMemoryStorage = new builder.MemoryBotStorage();
 
 const bot = module.exports = new builder.UniversalBot(connector, getStartingSteps()).set('storage', inMemoryStorage);
 
+// log any bot errors into the console
+bot.on('error', function (e) {
+    console.log('And error occurred', e);
+});
+
+// Send welcome when conversation with bot is started, by initiating the root dialog
+bot.on('conversationUpdate', function (message) {
+    if (message.membersAdded) {
+        message.membersAdded.forEach(function (identity) {
+            if (identity.id === message.address.bot.id) {
+                bot.beginDialog(message.address, '/');
+            }
+        });
+    }
+});
+
 bot.dialog('policy-sell', getPolicySellSteps());
 bot.dialog('insurance-driver', getDialogSteps(InsuranceType.Driver.code));
 bot.dialog('insurance-home', getDialogSteps(InsuranceType.Home.code));
@@ -312,24 +328,8 @@ function _addCalculatePriceSteps(product, steps) {
     return steps;
 }
 
-// log any bot errors into the console
-bot.on('error', function (e) {
-    console.log('And error occurred', e);
-});
-
-// Send welcome when conversation with bot is started, by initiating the root dialog
-bot.on('conversationUpdate', function (message) {
-    if (message.membersAdded) {
-        message.membersAdded.forEach(function (identity) {
-            if (identity.id === message.address.bot.id) {
-                bot.beginDialog(message.address, '/');
-            }
-        });
-    }
-});
-
 function sendInline(session, document) {
-    var msg = new builder.Message(session)
+    const msg = new builder.Message(session)
         .addAttachment({
             contentUrl: util.format('data:%s;base64,%s', document.contentType, document.content),
             contentType: document.contentType,
