@@ -9,6 +9,10 @@ const connector = new builder.ChatConnector({
     appPassword: process.env.MicrosoftAppPassword
 });
 
+const IntentType = {
+  BUY_POLICY: 'Buy new insurance'
+};
+
 const InsuranceType = {
     Driver: {code: 'CAR', name: 'Driver'},
     Home: {code: 'HSI', name: 'Home'},
@@ -18,111 +22,155 @@ const InsuranceType = {
 
 const inMemoryStorage = new builder.MemoryBotStorage();
 
-const bot = module.exports = new builder.UniversalBot(connector, [
-    function (session) {
-        builder.Prompts.choice(
-            session,
-            'What kind of insurance do you need?',
-            [InsuranceType.Driver.name, InsuranceType.Home.name, InsuranceType.Farm.name, InsuranceType.Travel.name],
-            {
-                maxRetries: 3,
-                retryPrompt: 'Not a valid option'
-            });
-    },
-    function (session, result) {
-        if (!result.response) {
-            // exhausted attemps and no selection, start over
-            session.send('Ooops! Too many attemps :( But don\'t worry, I\'m handling that exception and you can try again!');
-            return session.endDialog();
-        }
+const bot = module.exports = new builder.UniversalBot(connector, getStartingSteps()).set('storage', inMemoryStorage);
 
-        // on error, start over
-        session.on('error', function (err) {
-            session.send('Failed with message: %s', err.message);
-            session.endDialog();
-        });
-
-        // continue on proper dialog
-        console.log(result.response.entity);
-        const selection = result.response.entity;
-        switch (selection) {
-            case InsuranceType.Driver.name:
-                return session.beginDialog('insurance-driver');
-            case InsuranceType.Home.name:
-                return session.beginDialog('insurance-home');
-            case InsuranceType.Farm.name:
-                return session.beginDialog('insurance-farm');
-            case InsuranceType.Travel.name:
-                return session.beginDialog('insurance-travel');
-        }
-    }
-]).set('storage', inMemoryStorage);
-
+bot.dialog('policy-sell', getPolicySellSteps());
 bot.dialog('insurance-driver', getDialogSteps(InsuranceType.Driver.code));
 bot.dialog('insurance-home', getDialogSteps(InsuranceType.Home.code));
 bot.dialog('insurance-farm', getDialogSteps(InsuranceType.Farm.code));
 bot.dialog('insurance-travel', getDialogSteps(InsuranceType.Travel.code));
+bot.dialog('create-policy', getCreatePolicySteps());
 
-bot.dialog('create-policy', [
-    function (session) {
-        session.send('OK, lets sign papers!');
-        builder.Prompts.text(session, 'What is your first name?');
-    },
-    function (session, results, next) {
-        session.userData.firstName = results.response;
-        next();
-    },
-    function (session) {
-        builder.Prompts.text(session, 'What is your last name?');
-    },
-    function (session, results, next) {
-        session.userData.lastName = results.response;
-        next();
-    },
-    function (session) {
-        session.send('One more question:');
-        builder.Prompts.text(session, 'What is your tax id?');
-    },
-    function (session, results) {
-        session.userData.taxId = results.response;
-        session.send('OK, I am creating policy for %s %s (tax id: %s), please wait...',
-            session.userData.firstName,
-            session.userData.lastName,
-            session.userData.taxId
-        );
-        const params = {
-            "offerNumber": session.conversationData.offer.offerNumber,
-            "policyHolder": {
-                "firstName": session.userData.firstName,
-                "lastName": session.userData.lastName,
-                "taxId": session.userData.taxId
-            }
-        };
-        backend.createPolicy(params).then(function (policy) {
-            console.log(policy);
-            session.send('Your policy has been created: %s', policy.policyNumber);
-            waitForDocumentCreation()
-                .then(function () {
-                    return backend.getPolicyAttachments(policy.policyNumber)
-                })
-                .then(function (response) {
-                    console.log("processing attachments ");
-                    if (response != null && response.documents != null) {
-                        console.log(response.documents);
-                        response.documents.forEach(function (doc) {
-                            sendInline(session, {
-                                    content: doc.content,
-                                    contentType: 'application/pdf',
-                                    name: 'policy.pdf'
-                                }
-                            );
-                        });
-                    }
-                    session.endDialog();
+function getStartingSteps() {
+    return  [
+        function (session) {
+            session.send('Hello in ASC LAB Insurance Agent Bot!');
+            builder.Prompts.choice(
+                session,
+                'What do you want? (currently you can only buy insurance)',
+                [IntentType.BUY_POLICY],
+                {
+                    maxRetries: 3,
+                    retryPrompt: 'Not a valid option'
                 });
-        });
-    }
-]);
+        },
+        function (session, result) {
+            if (!result.response) {
+                // exhausted attemps and no selection, start over
+                session.send('Ooops! Too many attemps :( But don\'t worry, I\'m handling that exception and you can try again!');
+                return session.endDialog();
+            }
+
+            // on error, start over
+            session.on('error', function (err) {
+                session.send('Failed with message: %s', err.message);
+                session.endDialog();
+            });
+
+            // continue on proper dialog
+            const selection = result.response.entity;
+            switch (selection) {
+                case IntentType.BUY_POLICY:
+                    return session.beginDialog('policy-sell');
+            }
+        }
+    ];
+}
+
+function getCreatePolicySteps() {
+    return [
+        function (session) {
+            session.send('OK, lets sign papers!');
+            builder.Prompts.text(session, 'What is your first name?');
+        },
+        function (session, results, next) {
+            session.userData.firstName = results.response;
+            next();
+        },
+        function (session) {
+            builder.Prompts.text(session, 'What is your last name?');
+        },
+        function (session, results, next) {
+            session.userData.lastName = results.response;
+            next();
+        },
+        function (session) {
+            session.send('One more question:');
+            builder.Prompts.text(session, 'What is your tax id?');
+        },
+        function (session, results) {
+            session.userData.taxId = results.response;
+            session.send('OK, I am creating policy for %s %s (tax id: %s), please wait...',
+                session.userData.firstName,
+                session.userData.lastName,
+                session.userData.taxId
+            );
+            const params = {
+                "offerNumber": session.conversationData.offer.offerNumber,
+                "policyHolder": {
+                    "firstName": session.userData.firstName,
+                    "lastName": session.userData.lastName,
+                    "taxId": session.userData.taxId
+                }
+            };
+            backend.createPolicy(params).then(function (policy) {
+                console.log(policy);
+                session.send('Your policy has been created: %s', policy.policyNumber);
+                waitForDocumentCreation()
+                    .then(function () {
+                        return backend.getPolicyAttachments(policy.policyNumber)
+                    })
+                    .then(function (response) {
+                        console.log("processing attachments ");
+                        if (response != null && response.documents != null) {
+                            console.log(response.documents);
+                            response.documents.forEach(function (doc) {
+                                sendInline(session, {
+                                        content: doc.content,
+                                        contentType: 'application/pdf',
+                                        name: 'policy.pdf'
+                                    }
+                                );
+                            });
+                        }
+                        session.endDialog();
+                    });
+            });
+        }
+    ];
+}
+
+function getPolicySellSteps() {
+    return [
+        function (session) {
+            builder.Prompts.choice(
+                session,
+                'What kind of insurance do you need?',
+                [InsuranceType.Driver.name, InsuranceType.Home.name, InsuranceType.Farm.name, InsuranceType.Travel.name],
+                {
+                    maxRetries: 3,
+                    retryPrompt: 'Not a valid option'
+                });
+        },
+        function (session, result) {
+            if (!result.response) {
+                // exhausted attemps and no selection, start over
+                session.send('Ooops! Too many attemps :( But don\'t worry, I\'m handling that exception and you can try again!');
+                return session.endDialog();
+            }
+
+            // on error, start over
+            session.on('error', function (err) {
+                session.send('Failed with message: %s', err.message);
+                session.endDialog();
+            });
+
+            // continue on proper dialog
+            console.log(result.response.entity);
+            const selection = result.response.entity;
+            switch (selection) {
+                case InsuranceType.Driver.name:
+                    return session.beginDialog('insurance-driver');
+                case InsuranceType.Home.name:
+                    return session.beginDialog('insurance-home');
+                case InsuranceType.Farm.name:
+                    return session.beginDialog('insurance-farm');
+                case InsuranceType.Travel.name:
+                    return session.beginDialog('insurance-travel');
+            }
+        }
+    ];
+}
 
 function waitForDocumentCreation() {
     return new Promise(resolve => setTimeout(resolve, 1000));
@@ -267,6 +315,17 @@ function _addCalculatePriceSteps(product, steps) {
 // log any bot errors into the console
 bot.on('error', function (e) {
     console.log('And error occurred', e);
+});
+
+// Send welcome when conversation with bot is started, by initiating the root dialog
+bot.on('conversationUpdate', function (message) {
+    if (message.membersAdded) {
+        message.membersAdded.forEach(function (identity) {
+            if (identity.id === message.address.bot.id) {
+                bot.beginDialog(message.address, '/');
+            }
+        });
+    }
 });
 
 function sendInline(session, document) {
