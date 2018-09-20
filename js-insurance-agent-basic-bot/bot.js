@@ -5,13 +5,14 @@ const backend = require('./backend');
 const util = require('util');
 
 const connector = new builder.ChatConnector({
-    appId: process.env.MicrosoftAppId,
-    appPassword: process.env.MicrosoftAppPassword
+    appId: process.env.MICROSOFT_APP_ID,
+    appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 
-const IntentType = {
-  BUY_POLICY: 'Buy new insurance'
-};
+const inMemoryStorage = new builder.MemoryBotStorage();
+const bot = module.exports = new builder.UniversalBot(connector, getWelcomeSteps()).set('storage', inMemoryStorage);
+const recognizer = new builder.LuisRecognizer(process.env.LUIS_MODEL_URL);
+bot.recognizer(recognizer);
 
 const InsuranceType = {
     Driver: {code: 'CAR', name: 'Driver'},
@@ -19,15 +20,6 @@ const InsuranceType = {
     Farm: {code: 'FAI', name: 'Farm'},
     Travel: {code: 'TRI', name: 'Travel'}
 };
-
-const inMemoryStorage = new builder.MemoryBotStorage();
-
-const bot = module.exports = new builder.UniversalBot(connector, getStartingSteps()).set('storage', inMemoryStorage);
-
-// log any bot errors into the console
-bot.on('error', function (e) {
-    console.log('And error occurred', e);
-});
 
 // Send welcome when conversation with bot is started, by initiating the root dialog
 bot.on('conversationUpdate', function (message) {
@@ -40,21 +32,58 @@ bot.on('conversationUpdate', function (message) {
     }
 });
 
-bot.dialog('policy-sell', getPolicySellSteps());
+// log any bot errors into the console
+bot.on('error', function (e) {
+    console.log('And error occurred', e);
+});
+
+
+bot.dialog('policy-sell', getBuyInsuranceSteps()).triggerAction({matches: 'BuyPolicy'});
 bot.dialog('insurance-driver', getDialogSteps(InsuranceType.Driver.code));
 bot.dialog('insurance-home', getDialogSteps(InsuranceType.Home.code));
 bot.dialog('insurance-farm', getDialogSteps(InsuranceType.Farm.code));
 bot.dialog('insurance-travel', getDialogSteps(InsuranceType.Travel.code));
 bot.dialog('create-policy', getCreatePolicySteps());
 
-function getStartingSteps() {
-    return  [
+function getWelcomeSteps() {
+    return [
         function (session) {
             session.send('Hello in ASC LAB Insurance Agent Bot!');
+            session.send('What do you want? (currently you can only buy insurance)');
+        }
+    ];
+}
+
+function getBuyInsuranceSteps() {
+    return [
+        function (session, result, next) {
+            session.send('Great! You want to buy new insurance. We try recognize what insurance do you need...');
+            console.log(result);
+            let intent = result.intent;
+            let insuranceType = builder.EntityRecognizer.findEntity(intent.entities, 'InsuranceType');
+            if (!insuranceType) {
+                session.send('Unfortunately, you have not written yet what insurance you need.');
+                next();
+            } else {
+                switch (insuranceType.entity) {
+                    case 'home':
+                        session.send('Cool! You are interested in buying home insurance');
+                        return session.beginDialog('insurance-home');
+                    case 'travel':
+                        session.send('Cool! You are interested in buying travel insurance');
+                        return session.beginDialog('insurance-travel');
+                    default:
+                        session.send('Unfortunately, you have not written yet what insurance you need.');
+                        next();
+                }
+            }
+
+        },
+        function (session) {
             builder.Prompts.choice(
                 session,
-                'What do you want? (currently you can only buy insurance)',
-                [IntentType.BUY_POLICY],
+                'What kind of insurance do you need?',
+                [InsuranceType.Driver.name, InsuranceType.Home.name, InsuranceType.Farm.name, InsuranceType.Travel.name],
                 {
                     maxRetries: 3,
                     retryPrompt: 'Not a valid option'
@@ -74,10 +103,17 @@ function getStartingSteps() {
             });
 
             // continue on proper dialog
+            console.log(result.response.entity);
             const selection = result.response.entity;
             switch (selection) {
-                case IntentType.BUY_POLICY:
-                    return session.beginDialog('policy-sell');
+                case InsuranceType.Driver.name:
+                    return session.beginDialog('insurance-driver');
+                case InsuranceType.Home.name:
+                    return session.beginDialog('insurance-home');
+                case InsuranceType.Farm.name:
+                    return session.beginDialog('insurance-farm');
+                case InsuranceType.Travel.name:
+                    return session.beginDialog('insurance-travel');
             }
         }
     ];
@@ -142,48 +178,6 @@ function getCreatePolicySteps() {
                         session.endDialog();
                     });
             });
-        }
-    ];
-}
-
-function getPolicySellSteps() {
-    return [
-        function (session) {
-            builder.Prompts.choice(
-                session,
-                'What kind of insurance do you need?',
-                [InsuranceType.Driver.name, InsuranceType.Home.name, InsuranceType.Farm.name, InsuranceType.Travel.name],
-                {
-                    maxRetries: 3,
-                    retryPrompt: 'Not a valid option'
-                });
-        },
-        function (session, result) {
-            if (!result.response) {
-                // exhausted attemps and no selection, start over
-                session.send('Ooops! Too many attemps :( But don\'t worry, I\'m handling that exception and you can try again!');
-                return session.endDialog();
-            }
-
-            // on error, start over
-            session.on('error', function (err) {
-                session.send('Failed with message: %s', err.message);
-                session.endDialog();
-            });
-
-            // continue on proper dialog
-            console.log(result.response.entity);
-            const selection = result.response.entity;
-            switch (selection) {
-                case InsuranceType.Driver.name:
-                    return session.beginDialog('insurance-driver');
-                case InsuranceType.Home.name:
-                    return session.beginDialog('insurance-home');
-                case InsuranceType.Farm.name:
-                    return session.beginDialog('insurance-farm');
-                case InsuranceType.Travel.name:
-                    return session.beginDialog('insurance-travel');
-            }
         }
     ];
 }
