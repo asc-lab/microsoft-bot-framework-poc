@@ -1,2 +1,1 @@
-# chatbot-poc
-Our experiments with a few chatbot frameworks.
+# Insurance Agent Bot
