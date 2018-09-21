@@ -8,7 +8,7 @@ On **luis** branch is a version that shows how to integrate the bot with [**LUIS
 
 ## Dialog
 <p align="center">
-    <img alt="Dialog_Line" src="https://raw.githubusercontent.com/asc-lab/chatbot-poc/master/readme-images/chatbot_dialog_line.png" />
+    <img alt="Dialog_Line" src="https://raw.githubusercontent.com/asc-lab/chatbot-poc/master/readme_images/chatbot_dialog_line.png" />
 </p>
 
 ## Prerequisites
