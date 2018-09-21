@@ -12,7 +12,16 @@ On **luis** branch is a version that shows how to integrate the bot with [**LUIS
 </p>
 
 ## Prerequisites
-* Started **[LAB Insurance Sales Portal](https://github.com/asc-lab/micronaut-microservices-poc)**.
+* ```.env``` file:
+```
+MICROSOFT_APP_ID=
+MICROSOFT_APP_PASSWORD=
+
+MOCK_BACKEND=true
+BACKEND_HOST=localhost
+```
+* if you want to have the benefits of full functionality, you must run our **[LAB Insurance Sales Portal](https://github.com/asc-lab/micronaut-microservices-poc)** and change in ```.env``` file ```MOCK_BACKEND``` from ```true``` to ```false```.
+
 
 ## Build
 ```

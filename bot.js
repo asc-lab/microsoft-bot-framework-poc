@@ -1,7 +1,7 @@
 require('dotenv-extended').load();
 
 const builder = require('botbuilder');
-const backend = require('./backend');
+const backend = process.env.MOCK_BACKEND === 'true' ? require('./backend-mock') : require('./backend');
 const util = require('util');
 
 const connector = new builder.ChatConnector({
@@ -224,6 +224,9 @@ function _addStepsAboutCoverageDates(steps) {
 }
 
 function _addStepsBasedOnTariff(product, steps) {
+    if (!product.questions)
+        return steps;
+
     product.questions.forEach(function (question) {
         if (question.type === 'numeric') {
             steps.push(function (session) {
@@ -276,10 +279,12 @@ function _addStepsBasedOnTariff(product, steps) {
 function _addSummarySteps(steps) {
     steps.push(function (session, results, next) {
         session.send("Let wrap up: you need insurance from %s to %s.", session.dialogData.policyStart, session.dialogData.policyEnd);
-        session.send("Your answers:");
-        session.dialogData.answers.forEach(a => {
-            session.send("Question: %s. Answer: %s.", a.text, a.answer);
-        });
+        if (session.dialogData.answers) {
+            session.send("Your answers:");
+            session.dialogData.answers.forEach(a => {
+                session.send("Question: %s. Answer: %s.", a.text, a.answer);
+            });
+        }
         next();
     });
     return steps;
@@ -293,7 +298,7 @@ function _addCalculatePriceSteps(product, steps) {
             "productCode": product.code,
             "policyFrom": session.dialogData.policyStart,
             "policyTo": session.dialogData.policyEnd,
-            "selectedCovers": product.covers.map(c => c.code),
+            "selectedCovers": product.covers ? product.covers.map(c => c.code) : [],
             "answers": session.dialogData.answers
         };
 
