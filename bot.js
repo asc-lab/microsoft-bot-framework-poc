@@ -38,7 +38,8 @@ bot.on('error', function (e) {
 });
 
 
-bot.dialog('policy-sell', getBuyInsuranceSteps()).triggerAction({matches: 'BuyPolicy'});
+bot.dialog('buy-insurance', getBuyInsuranceSteps()).triggerAction({matches: 'BuyPolicy'});
+bot.dialog('register-claim', getRegisterClaimSteps()).triggerAction({matches: 'RegisterClaim'});
 bot.dialog('insurance-driver', getDialogSteps(InsuranceType.Driver.code));
 bot.dialog('insurance-home', getDialogSteps(InsuranceType.Home.code));
 bot.dialog('insurance-farm', getDialogSteps(InsuranceType.Farm.code));
@@ -332,4 +333,13 @@ function sendInline(session, document) {
         });
 
     session.send(msg);
+}
+
+function getRegisterClaimSteps() {
+    return [
+        function (session) {
+            session.send('Unfortunately, currently you can only buy insurance. Sorry :(');
+            session.endDialog();
+        }
+    ];
 }
