@@ -24,3 +24,8 @@ npm install
 npm run start
 ```
 Run [Microsoft Bot Framework Emulator](https://github.com/Microsoft/BotFramework-Emulator/releases), open **insurance-agent-basic-bot.bot** file from this repo in emulator and enjoy.
+
+## Example
+<p align="center">
+    <img alt="Example" src="https://raw.githubusercontent.com/asc-lab/chatbot-poc/master/readme_images/bot.gif" />
+</p>
