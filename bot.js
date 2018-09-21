@@ -130,6 +130,7 @@ function getCreatePolicySteps() {
                         console.log("processing attachments ");
                         if (response != null && response.documents != null) {
                             console.log(response.documents);
+                            session.send('Below, your documents will appear, which you should download as a confirmation of insurance.');
                             response.documents.forEach(function (doc) {
                                 sendInline(session, {
                                         content: doc.content,
