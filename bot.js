@@ -50,7 +50,7 @@ function getWelcomeSteps() {
     return [
         function (session) {
             session.send('Hello in ASC LAB Insurance Agent Bot!');
-            session.send('What do you want? (currently you can only buy insurance)');
+            session.send('What do you want?');
         }
     ];
 }
@@ -68,17 +68,18 @@ function getBuyInsuranceSteps() {
             } else {
                 switch (insuranceType.entity) {
                     case 'home':
-                        session.send('Cool! You are interested in buying home insurance');
-                        return session.beginDialog('insurance-home');
+                        return redirectToProperDialog(session, 'home');
                     case 'travel':
-                        session.send('Cool! You are interested in buying travel insurance');
-                        return session.beginDialog('insurance-travel');
+                        return redirectToProperDialog(session, 'travel');
+                    case 'farm':
+                        return redirectToProperDialog(session, 'farm');
+                    case 'car':
+                        return redirectToProperDialog(session, 'car');
                     default:
                         session.send('Unfortunately, you have not written yet what insurance you need.');
                         next();
                 }
             }
-
         },
         function (session) {
             builder.Prompts.choice(
@@ -342,4 +343,9 @@ function getRegisterClaimSteps() {
             session.endDialog();
         }
     ];
+}
+
+function redirectToProperDialog(session, insuranceName) {
+    session.send('Cool! You are interested in buying ' + insuranceName + ' insurance');
+    return session.beginDialog('insurance-' + insuranceName);
 }
