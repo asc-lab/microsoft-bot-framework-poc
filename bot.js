@@ -10,7 +10,8 @@ const connector = new builder.ChatConnector({
 });
 
 const IntentType = {
-  BUY_POLICY: 'Buy new insurance'
+    BUY_POLICY: 'Buy new insurance',
+    REGISTER_CLAIM: 'Register claim'
 };
 
 const InsuranceType = {
@@ -48,13 +49,13 @@ bot.dialog('insurance-travel', getDialogSteps(InsuranceType.Travel.code));
 bot.dialog('create-policy', getCreatePolicySteps());
 
 function getStartingSteps() {
-    return  [
+    return [
         function (session) {
             session.send('Hello in ASC LAB Insurance Agent Bot!');
             builder.Prompts.choice(
                 session,
-                'What do you want? (currently you can only buy insurance)',
-                [IntentType.BUY_POLICY],
+                'What do you want?',
+                [IntentType.BUY_POLICY, IntentType.REGISTER_CLAIM],
                 {
                     maxRetries: 3,
                     retryPrompt: 'Not a valid option'
@@ -78,6 +79,9 @@ function getStartingSteps() {
             switch (selection) {
                 case IntentType.BUY_POLICY:
                     return session.beginDialog('policy-sell');
+                case IntentType.REGISTER_CLAIM:
+                    session.send('Unfortunately, currently you can only buy insurance. Sorry :(');
+                    session.endDialog();
             }
         }
     ];
