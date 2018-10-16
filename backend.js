@@ -34,7 +34,7 @@ function getPrice(params, auth) {
                 uri: `http://${backendHost}:8081/api/offers`,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 },
                 body:
                     JSON.stringify(params)
@@ -66,7 +66,7 @@ function _createPolicy(params, auth) {
                 uri: `http://${backendHost}:8081/api/policies/create`,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 },
                 body:
                     JSON.stringify(params)
@@ -97,7 +97,7 @@ function _getProductDefinition(params, auth) {
                 uri: `http://${backendHost}:8081/api/products/` + params.code,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 }
             },
             function (error, response, body) {
@@ -125,7 +125,7 @@ function _getPolicyAttachments(code, auth) {
                 uri: `http://${backendHost}:8081/api/documents/` + code,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 }
             },
             function (error, response, body) {
