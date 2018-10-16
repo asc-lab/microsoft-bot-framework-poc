@@ -8,7 +8,7 @@ function login() {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8090/login`,
+                uri: `http://${backendHost}:80/login`,
                 headers: {
                     'content-type': 'application/json'
                 },
@@ -31,7 +31,7 @@ function getPrice(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8081/api/offers`,
+                uri: `http://${backendHost}:80/api/offers`,
                 headers: {
                     'content-type': 'application/json',
                     'Authorization': 'Bearer ' + auth.access_token
@@ -63,7 +63,7 @@ function _createPolicy(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8081/api/policies/create`,
+                uri: `http://${backendHost}:80/api/policies/create`,
                 headers: {
                     'content-type': 'application/json',
                     'Authorization': 'Bearer ' + auth.access_token
@@ -94,7 +94,7 @@ function _getProductDefinition(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'GET',
-                uri: `http://${backendHost}:8081/api/products/` + params.code,
+                uri: `http://${backendHost}:80/api/products/` + params.code,
                 headers: {
                     'content-type': 'application/json',
                     'Authorization': 'Bearer ' + auth.access_token
@@ -122,7 +122,7 @@ function _getPolicyAttachments(code, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'GET',
-                uri: `http://${backendHost}:8081/api/documents/` + code,
+                uri: `http://${backendHost}:80/api/documents/` + code,
                 headers: {
                     'content-type': 'application/json',
                     'Authorization': 'Bearer ' + auth.access_token
