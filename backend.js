@@ -1,6 +1,7 @@
 require('dotenv-extended').load();
 const request = require('request');
 const backendHost = process.env.BACKEND_HOST;
+const authHost = process.env.AUTH_HOST;
 
 function login() {
     const credentials = {"username": "jimmy.solid", "password": "secret"};
@@ -8,7 +9,7 @@ function login() {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8090/login`,
+                uri: `${authHost}/login`,
                 headers: {
                     'content-type': 'application/json'
                 },
@@ -31,10 +32,10 @@ function getPrice(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8081/api/offers`,
+                uri: `${backendHost}/api/offers`,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 },
                 body:
                     JSON.stringify(params)
@@ -63,10 +64,10 @@ function _createPolicy(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'POST',
-                uri: `http://${backendHost}:8081/api/policies/create`,
+                uri: `${backendHost}/api/policies/create`,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 },
                 body:
                     JSON.stringify(params)
@@ -94,10 +95,10 @@ function _getProductDefinition(params, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'GET',
-                uri: `http://${backendHost}:8081/api/products/` + params.code,
+                uri: `${backendHost}/api/products/` + params.code,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 }
             },
             function (error, response, body) {
@@ -122,10 +123,10 @@ function _getPolicyAttachments(code, auth) {
     return new Promise(function (resolve, reject) {
         request({
                 method: 'GET',
-                uri: `http://${backendHost}:8081/api/documents/` + code,
+                uri: `${backendHost}/api/documents/` + code,
                 headers: {
                     'content-type': 'application/json',
-                    'Authorization': 'Bearer ' + auth.accessToken
+                    'Authorization': 'Bearer ' + auth.access_token
                 }
             },
             function (error, response, body) {
